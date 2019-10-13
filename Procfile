@@ -1,0 +1,1 @@
+web: sh -c 'cd ./BanksAPI/ && exec gunicorn BanksAPI.wsgi --log-file -'

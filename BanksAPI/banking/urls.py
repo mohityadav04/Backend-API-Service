@@ -9,6 +9,6 @@ urlpatterns = [
     path('login/', TokenObtainPairView.as_view()),
     path('refresh/', TokenRefreshView.as_view()),
     path('register/', SignUpView.as_view()),
-    path('ifsc/<str:icode>/', BranchDetailView.as_view()),
-    path('bank/<str:bname>/city/<str:cityname>/', BankBranchesInCityView.as_view()),
+    path('branch-info/', BranchDetailView.as_view()),
+    path('city-branches/', BankBranchesInCityView.as_view()),
 ]

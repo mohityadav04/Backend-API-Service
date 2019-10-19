@@ -15,15 +15,16 @@ from django.core.exceptions import ObjectDoesNotExist
 
 
 class BranchDetailView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, **kwargs):
         # using try,except to fail gracefully
         try:
-            q = Branches.objects.get(ifsc=kwargs['icode'])
+            ifsc_requested = request.GET.get('ifsc')
+            q = Branches.objects.get(ifsc=ifsc_requested)
             s = BranchesSerializer(instance=q)
             return response.Response(s.data, status.HTTP_200_OK)
-        except ObjectDoesNotExist:
+        except (KeyError, ObjectDoesNotExist):
             return response.Response(
                 "No information for given bank in given city",
                 status.HTTP_404_NOT_FOUND
@@ -31,22 +32,30 @@ class BranchDetailView(APIView):
 
 
 class BankBranchesInCityView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, **kwargs):
-        # Below will take care of duplicate bank record in banks table
-        bank_record = Banks.objects.filter(name=kwargs['bname']).first()
-        # Get the branches from above bank in the given city
-        branches_records = Branches.objects.filter(bank=bank_record, city=kwargs['cityname'])
+        try:
+            bank_requested = request.GET.get('bank')
+            city_requested = request.GET.get('city')
+            # Below will take care of duplicate bank record in banks table, because bank name is not a primary key
+            bank_record = Banks.objects.filter(name=bank_requested).first()
+            # Get the branches from above bank in the given city
+            branches_records = Branches.objects.filter(bank=bank_record, city=city_requested)
 
-        # handle pagination
-        pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
-        paginator = pagination_class()
-        paginated_records = paginator.paginate_queryset(branches_records, request)
+            # handle pagination
+            pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
+            paginator = pagination_class()
+            paginated_records = paginator.paginate_queryset(branches_records, request)
 
-        # Serialize records
-        serialized_records = BranchesSerializer(instance=paginated_records, many=True)
-        return response.Response(serialized_records.data, status.HTTP_200_OK)
+            # Serialize records
+            serialized_records = BranchesSerializer(instance=paginated_records, many=True)
+            return response.Response(serialized_records.data, status.HTTP_200_OK)
+        except KeyError:
+            return response.Response(
+                "No information for given bank in given city",
+                status.HTTP_404_NOT_FOUND
+            )
 
 
 @method_decorator(csrf_exempt, name='dispatch')
